@@ -163,13 +163,22 @@ canvas {
 }
 
 #hud-status {
-    font-size: 0.7rem;
-    color: #999;
+    font-size: 0.8rem;
+    color: #FFD700;
     letter-spacing: 1px;
+    font-weight: bold;
 }
 
 #hud-status.delivering {
     color: #FFA500;
+    animation: warningPulse 0.8s ease-in-out infinite;
+}
+
+#hud-status.tip-flash {
+    color: #33FF33;
+    font-size: 1rem;
+    text-shadow: 0 0 10px rgba(51,255,51,0.6);
+    animation: bounce 0.4s ease-in-out infinite alternate;
 }
 
 #hud-timer {
@@ -320,6 +329,33 @@ canvas {
 #play-again-btn:hover {
     transform: scale(1.1);
     box-shadow: 0 0 25px rgba(255,0,0,0.5);
+}
+
+/* ============================================
+   TUTORIAL OVERLAY
+   ============================================ */
+
+#tutorial-overlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 75;
+    pointer-events: auto;
+}
+
+#tutorial-text {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(2rem, 6vw, 4rem);
+    color: #FFD700;
+    text-shadow: 0 0 20px rgba(255,215,0,0.5), 3px 3px 0 #000;
+    text-align: center;
+    padding: 20px;
+    letter-spacing: 3px;
+    animation: fadeIn 0.5s ease-out;
 }
 
 /* ============================================

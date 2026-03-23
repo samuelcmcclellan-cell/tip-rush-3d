@@ -26,17 +26,19 @@ window.GAME.Mechanics = (function() {
         franciscoStuckTime: 0,
         franciscoLastPos: { x: 0, z: 0 },
         playerSpeed: 14,
-        franciscoBaseSpeed: 5.5,
-        franciscoSpeedIncrease: 0.5,
-        franciscoMaxSpeed: 16,
+        franciscoBaseSpeed: 4.0,
+        franciscoSpeedIncrease: 0.3,
+        franciscoMaxSpeed: 12,
         gameOver: false,
         friscoMeltCount: 0,
+        lastTipValue: 0,
+        lastTipFlashTimer: 0,
         // Jaime state
         jaimeSpawned: false,
         jaimeStuckTime: 0,
-        jaimeBaseSpeed: 5.0,
-        jaimeSpeedIncrease: 0.4,
-        jaimeMaxSpeed: 15
+        jaimeBaseSpeed: 3.5,
+        jaimeSpeedIncrease: 0.25,
+        jaimeMaxSpeed: 10
     };
 
     var restaurantData = null;
@@ -356,8 +358,8 @@ window.GAME.Mechanics = (function() {
      * Returns null if no catch, or 'francisco'/'jaime' indicating who caught
      */
     function checkCatch(playerPos, franciscoPos, jaimePos) {
-        var catchRadius = 0.5 * 0.55;
-        var threshold = catchRadius * 2 + 0.15;
+        var catchRadius = 0.5 * 0.45;
+        var threshold = catchRadius * 2 + 0.1;
 
         // Check Francisco
         var dx = playerPos.x - franciscoPos.x;
@@ -487,8 +489,8 @@ window.GAME.Mechanics = (function() {
         var type = rollOrderType();
 
         var maxTimer = type.name === 'FRISCO MELT'
-            ? Math.max(6, 12 - state.difficulty * 0.5)
-            : Math.max(8, 15 - state.difficulty * 0.5);
+            ? Math.max(10, 18 - state.difficulty * 0.5)
+            : Math.max(12, 20 - state.difficulty * 0.5);
 
         var order = {
             type: type,
@@ -533,13 +535,17 @@ window.GAME.Mechanics = (function() {
             var dz = playerPos.z - order.tablePos.z;
             var dist = Math.sqrt(dx * dx + dz * dz);
 
-            if (dist < 2.5) {
+            if (dist < 3.5) {
                 // Deliver food
                 state.carryingFood = false;
                 window.GAME.Audio.deliver();
 
                 // Spawn tip near table
                 spawnTip(order.tablePos, order.type.tip);
+
+                // Track tip flash for HUD
+                state.lastTipValue = order.type.tip;
+                state.lastTipFlashTimer = 2.0;
 
                 // Remove order
                 if (order.group) scene.remove(order.group);
@@ -687,7 +693,7 @@ window.GAME.Mechanics = (function() {
         var dz = playerPos.z - ms.z;
         var dist = Math.sqrt(dx * dx + dz * dz);
 
-        if (dist < 1.5) {
+        if (dist < 2.5) {
             // Collect milkshake
             scene.remove(ms.group);
             state.activeMilkshake = null;
@@ -710,7 +716,7 @@ window.GAME.Mechanics = (function() {
             var dz = playerPos.z - tip.z;
             var dist = Math.sqrt(dx * dx + dz * dz);
 
-            if (dist < 1.2) {
+            if (dist < 2.0) {
                 state.score += tip.value;
                 window.GAME.Audio.collect();
                 scene.remove(tip.mesh);
@@ -728,7 +734,10 @@ window.GAME.Mechanics = (function() {
         if (state.gameOver) return;
 
         state.elapsedTime += dt;
-        state.difficulty = Math.floor(state.elapsedTime / 12);
+        state.difficulty = Math.floor(state.elapsedTime / 20);
+
+        // Tip flash timer
+        if (state.lastTipFlashTimer > 0) state.lastTipFlashTimer -= dt;
 
         // Spawn initial orders
         if (!state.initialOrdersSpawned) {
@@ -826,7 +835,7 @@ window.GAME.Mechanics = (function() {
 
         // Pulse pickup zone glow
         if (window.GAME._pickupGlow) {
-            var glowPulse = 0.15 + Math.sin(state.elapsedTime * 3) * 0.1;
+            var glowPulse = 0.35 + Math.sin(state.elapsedTime * 3) * 0.15;
             window.GAME._pickupGlow.material.opacity = state.carryingFood ? 0.05 : glowPulse;
         }
     }

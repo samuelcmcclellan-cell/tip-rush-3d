@@ -226,12 +226,15 @@ window.GAME.UI = (function() {
         // Score
         hudScore.textContent = '$' + gameState.score;
 
-        // Carrying status
-        if (gameState.carryingFood) {
-            hudStatus.textContent = '🍔 DELIVERING...';
+        // Carrying status + tip flash
+        if (gameState.lastTipFlashTimer > 0) {
+            hudStatus.textContent = 'NICE TIP! $' + gameState.lastTipValue + ' 💰';
+            hudStatus.className = 'tip-flash';
+        } else if (gameState.carryingFood) {
+            hudStatus.textContent = 'DELIVER TO A TABLE! GO GO GO! 🍔';
             hudStatus.className = 'delivering';
         } else {
-            hudStatus.textContent = 'GO TO COUNTER';
+            hudStatus.textContent = '👉 GO TO COUNTER TO PICK UP FOOD';
             hudStatus.className = '';
         }
 
