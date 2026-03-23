@@ -13,15 +13,11 @@ window.GAME.UI = (function() {
     var franciscoWarning;
     var gameoverScore, gameoverNewHigh, gameoverTime;
     var menuHighscore;
-    var joystickContainer, joystickOuter, joystickInner;
 
-    // Joystick state
-    var joystickActive = false;
-    var joystickInput = { x: 0, y: 0 };
-    var joystickTouchId = null;
-    var joystickCenterX = 0;
-    var joystickCenterY = 0;
-    var joystickMaxRadius = 50; // half of (130 - 55) / 2 roughly
+    // Tap-to-move state (mobile)
+    var tapTarget = { x: 0, z: 0, active: false };
+    var tapTouchId = null;
+    var cameraRef = null; // set via setCamera()
 
     // High score
     var highScore = 0;
@@ -52,9 +48,6 @@ window.GAME.UI = (function() {
         gameoverNewHigh = document.getElementById('gameover-newhigh');
         gameoverTime = document.getElementById('gameover-time');
         menuHighscore = document.getElementById('menu-highscore');
-        joystickContainer = document.getElementById('joystick-container');
-        joystickOuter = document.getElementById('joystick-outer');
-        joystickInner = document.getElementById('joystick-inner');
 
         // Load high score
         highScore = parseInt(localStorage.getItem('steaknshake3d_highscore') || '0', 10);
@@ -74,9 +67,9 @@ window.GAME.UI = (function() {
             showMenu();
         });
 
-        // Setup joystick for touch devices
+        // Setup tap-to-move for touch devices
         if (isTouchDevice()) {
-            setupJoystick();
+            setupTapToMove();
         }
 
         // Show menu initially
@@ -91,81 +84,91 @@ window.GAME.UI = (function() {
     }
 
     /**
-     * Setup virtual joystick for mobile
+     * Set camera reference for tap-to-move raycasting
      */
-    function setupJoystick() {
-        joystickContainer.style.display = 'block';
+    function setCamera(cam) {
+        cameraRef = cam;
+    }
 
-        joystickOuter.addEventListener('touchstart', function(e) {
+    /**
+     * Setup tap-to-move controls for mobile
+     * Player taps/drags on screen → raycast to floor → set walk target
+     */
+    function setupTapToMove() {
+        var canvas = document.querySelector('canvas');
+        if (!canvas) return;
+
+        canvas.addEventListener('touchstart', function(e) {
+            // Don't handle taps when menus are visible
+            if (menuOverlay.style.display !== 'none' || gameoverOverlay.style.display !== 'none') return;
             e.preventDefault();
             var touch = e.changedTouches[0];
-            joystickTouchId = touch.identifier;
-            joystickActive = true;
-
-            var rect = joystickOuter.getBoundingClientRect();
-            joystickCenterX = rect.left + rect.width / 2;
-            joystickCenterY = rect.top + rect.height / 2;
-
-            updateJoystickPosition(touch.clientX, touch.clientY);
+            tapTouchId = touch.identifier;
+            raycastToFloor(touch.clientX, touch.clientY);
         }, { passive: false });
 
-        document.addEventListener('touchmove', function(e) {
-            if (!joystickActive) return;
+        canvas.addEventListener('touchmove', function(e) {
+            if (tapTouchId === null) return;
             for (var i = 0; i < e.changedTouches.length; i++) {
                 var touch = e.changedTouches[i];
-                if (touch.identifier === joystickTouchId) {
+                if (touch.identifier === tapTouchId) {
                     e.preventDefault();
-                    updateJoystickPosition(touch.clientX, touch.clientY);
+                    raycastToFloor(touch.clientX, touch.clientY);
                     break;
                 }
             }
         }, { passive: false });
 
-        document.addEventListener('touchend', function(e) {
+        canvas.addEventListener('touchend', function(e) {
             for (var i = 0; i < e.changedTouches.length; i++) {
-                if (e.changedTouches[i].identifier === joystickTouchId) {
-                    joystickActive = false;
-                    joystickTouchId = null;
-                    joystickInput.x = 0;
-                    joystickInput.y = 0;
-                    joystickInner.style.transform = 'translate(-50%, -50%)';
-                    joystickInner.style.left = '50%';
-                    joystickInner.style.top = '50%';
+                if (e.changedTouches[i].identifier === tapTouchId) {
+                    tapTouchId = null;
+                    // Keep target active — player walks to it
                     break;
                 }
             }
         });
     }
 
-    function updateJoystickPosition(touchX, touchY) {
-        var dx = touchX - joystickCenterX;
-        var dy = touchY - joystickCenterY;
-        var dist = Math.sqrt(dx * dx + dy * dy);
-        var maxDist = joystickMaxRadius;
+    /**
+     * Raycast from screen touch to the floor plane (y=0)
+     */
+    function raycastToFloor(screenX, screenY) {
+        if (!cameraRef) return;
 
-        if (dist > maxDist) {
-            dx = (dx / dist) * maxDist;
-            dy = (dy / dist) * maxDist;
-            dist = maxDist;
+        // Convert screen coords to normalized device coords (-1 to +1)
+        var ndcX = (screenX / window.innerWidth) * 2 - 1;
+        var ndcY = -(screenY / window.innerHeight) * 2 + 1;
+
+        // Create a ray from camera through the touch point
+        var raycaster = new THREE.Raycaster();
+        var mouseVec = new THREE.Vector2(ndcX, ndcY);
+        raycaster.setFromCamera(mouseVec, cameraRef);
+
+        // Intersect with floor plane (y = 0)
+        var floorPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+        var intersection = new THREE.Vector3();
+        var hit = raycaster.ray.intersectPlane(floorPlane, intersection);
+
+        if (hit) {
+            tapTarget.x = intersection.x;
+            tapTarget.z = intersection.z;
+            tapTarget.active = true;
         }
-
-        // Normalize to -1..1
-        joystickInput.x = dx / maxDist;
-        joystickInput.y = dy / maxDist;
-
-        // Move inner circle
-        var innerOffsetX = 50 + (dx / 65) * 50;
-        var innerOffsetY = 50 + (dy / 65) * 50;
-        joystickInner.style.left = innerOffsetX + '%';
-        joystickInner.style.top = innerOffsetY + '%';
-        joystickInner.style.transform = 'translate(-50%, -50%)';
     }
 
     /**
-     * Get joystick input
+     * Get tap-to-move target position
      */
-    function getJoystickInput() {
-        return joystickInput;
+    function getTapTarget() {
+        return tapTarget;
+    }
+
+    /**
+     * Clear tap target (when player reaches it)
+     */
+    function clearTapTarget() {
+        tapTarget.active = false;
     }
 
     /**
@@ -192,11 +195,6 @@ window.GAME.UI = (function() {
         gameoverOverlay.style.display = 'none';
         franciscoWarning.style.display = 'none';
         milkshakeBar.style.display = 'none';
-
-        // Show joystick on mobile
-        if (isTouchDevice()) {
-            joystickContainer.style.display = 'block';
-        }
     }
 
     /**
@@ -218,11 +216,6 @@ window.GAME.UI = (function() {
             localStorage.setItem('steaknshake3d_highscore', String(score));
         } else {
             gameoverNewHigh.style.display = 'none';
-        }
-
-        // Hide joystick
-        if (joystickContainer) {
-            joystickContainer.style.display = 'none';
         }
     }
 
@@ -290,7 +283,9 @@ window.GAME.UI = (function() {
         showHUD: showHUD,
         showGameOver: showGameOver,
         updateHUD: updateHUD,
-        getJoystickInput: getJoystickInput,
+        getTapTarget: getTapTarget,
+        clearTapTarget: clearTapTarget,
+        setCamera: setCamera,
         getHighScore: getHighScore,
         isTouchDevice: isTouchDevice
     };

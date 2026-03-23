@@ -13,6 +13,7 @@ window.GAME = window.GAME || {};
     // Game objects
     var playerModel = null;
     var franciscoModel = null;
+    var jaimeModel = null;
     var restaurantData = null;
 
     // Input state
@@ -21,6 +22,26 @@ window.GAME = window.GAME || {};
 
     // Milkshake aura (visual effect around player during boost)
     var milkshakeAura = null;
+
+    // Tap-to-move target marker (3D ring on floor)
+    var tapTargetMarker = null;
+
+    // Francisco speech bubble system
+    var franciscoSpeechMesh = null;
+    var franciscoSpeechTimer = 4; // first speech after 4 seconds
+    var franciscoSpeechDuration = 0;
+    var franciscoSpeechVisible = false;
+    var FRANCISCO_QUOTES = [
+        "Hey you look tired...",
+        "Come here for a sec...",
+        "I just wanna talk...",
+        "You look stressed...",
+        "Take a break...",
+        "Where you going?",
+        "Slow down...",
+        "Hey wait up...",
+        "I need to tell you something..."
+    ];
 
     /**
      * Initialize everything on page load
@@ -51,7 +72,6 @@ window.GAME = window.GAME || {};
             100
         );
 
-        // Clock for delta time
         // Build restaurant environment (visible behind menu)
         restaurantData = window.GAME.Restaurant.build(scene);
 
@@ -63,8 +83,9 @@ window.GAME = window.GAME || {};
         camera.position.set(0, 15, 10);
         camera.lookAt(0, 0, 0);
 
-        // Initialize UI
+        // Initialize UI and pass camera for tap-to-move raycasting
         window.GAME.UI.init(onCharacterSelected);
+        window.GAME.UI.setCamera(camera);
 
         // Initialize mechanics
         window.GAME.Mechanics.init(restaurantData, scene);
@@ -82,6 +103,9 @@ window.GAME = window.GAME || {};
 
         // Create milkshake aura effect (hidden initially)
         createMilkshakeAura();
+
+        // Create tap-to-move target marker
+        createTapTargetMarker();
 
         // Start render loop (always running for menu background)
         lastTime = performance.now();
@@ -128,12 +152,138 @@ window.GAME = window.GAME || {};
     }
 
     /**
+     * Create tap-to-move target marker (pulsing ring on floor)
+     */
+    function createTapTargetMarker() {
+        var ringGeo = new THREE.RingGeometry(0.3, 0.5, 24);
+        var ringMat = new THREE.MeshBasicMaterial({
+            color: 0x33FF33,
+            transparent: true,
+            opacity: 0.6,
+            side: THREE.DoubleSide
+        });
+        tapTargetMarker = new THREE.Mesh(ringGeo, ringMat);
+        tapTargetMarker.rotation.x = -Math.PI / 2; // lay flat on floor
+        tapTargetMarker.position.y = 0.05;
+        tapTargetMarker.visible = false;
+        scene.add(tapTargetMarker);
+    }
+
+    /**
+     * Create a speech bubble canvas texture
+     */
+    function createSpeechBubbleTexture(text) {
+        var canvas = document.createElement('canvas');
+        canvas.width = 512;
+        canvas.height = 128;
+        var ctx = canvas.getContext('2d');
+
+        // Rounded rectangle background
+        var radius = 20;
+        ctx.fillStyle = 'rgba(255,255,255,0.92)';
+        ctx.beginPath();
+        ctx.moveTo(radius, 0);
+        ctx.lineTo(canvas.width - radius, 0);
+        ctx.quadraticCurveTo(canvas.width, 0, canvas.width, radius);
+        ctx.lineTo(canvas.width, canvas.height - radius);
+        ctx.quadraticCurveTo(canvas.width, canvas.height, canvas.width - radius, canvas.height);
+        ctx.lineTo(radius, canvas.height);
+        ctx.quadraticCurveTo(0, canvas.height, 0, canvas.height - radius);
+        ctx.lineTo(0, radius);
+        ctx.quadraticCurveTo(0, 0, radius, 0);
+        ctx.closePath();
+        ctx.fill();
+
+        // Border
+        ctx.strokeStyle = '#333';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+
+        // Text
+        ctx.fillStyle = '#222';
+        ctx.font = 'bold 36px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+
+        var tex = new THREE.CanvasTexture(canvas);
+        tex.needsUpdate = true;
+        return tex;
+    }
+
+    /**
+     * Show a speech bubble above Francisco
+     */
+    function showFranciscoSpeech(text) {
+        // Remove old speech bubble
+        if (franciscoSpeechMesh) {
+            scene.remove(franciscoSpeechMesh);
+            franciscoSpeechMesh = null;
+        }
+
+        var tex = createSpeechBubbleTexture(text);
+        var mat = new THREE.MeshBasicMaterial({
+            map: tex,
+            transparent: true,
+            opacity: 1,
+            depthTest: false
+        });
+        franciscoSpeechMesh = new THREE.Mesh(new THREE.PlaneGeometry(3, 0.75), mat);
+        franciscoSpeechMesh.position.set(0, 3.5, 0);
+        franciscoSpeechMesh.renderOrder = 999;
+        scene.add(franciscoSpeechMesh);
+
+        franciscoSpeechVisible = true;
+        franciscoSpeechDuration = 3; // visible for 3 seconds
+    }
+
+    /**
+     * Update Francisco speech bubble system
+     */
+    function updateFranciscoSpeech(dt) {
+        // Timer to show next speech
+        franciscoSpeechTimer -= dt;
+        if (franciscoSpeechTimer <= 0 && !franciscoSpeechVisible) {
+            var quote = FRANCISCO_QUOTES[Math.floor(Math.random() * FRANCISCO_QUOTES.length)];
+            showFranciscoSpeech(quote);
+            franciscoSpeechTimer = 6 + Math.random() * 4; // 6-10 second interval
+        }
+
+        // Update visible speech bubble
+        if (franciscoSpeechVisible && franciscoSpeechMesh && franciscoModel) {
+            franciscoSpeechDuration -= dt;
+
+            // Position above Francisco's head, billboard toward camera
+            franciscoSpeechMesh.position.set(
+                franciscoModel.position.x,
+                franciscoModel.position.y + 3.5,
+                franciscoModel.position.z
+            );
+            franciscoSpeechMesh.lookAt(camera.position);
+
+            // Fade out in last 0.5 seconds
+            if (franciscoSpeechDuration < 0.5) {
+                franciscoSpeechMesh.material.opacity = Math.max(0, franciscoSpeechDuration / 0.5);
+            }
+
+            // Remove when done
+            if (franciscoSpeechDuration <= 0) {
+                scene.remove(franciscoSpeechMesh);
+                franciscoSpeechMesh = null;
+                franciscoSpeechVisible = false;
+            }
+        }
+    }
+
+    /**
      * Called when player selects a character
      */
     function onCharacterSelected(characterName) {
-        // Remove existing player/francisco if any
+        // Remove existing models
         if (playerModel) scene.remove(playerModel);
         if (franciscoModel) scene.remove(franciscoModel);
+        if (jaimeModel) { scene.remove(jaimeModel); jaimeModel = null; }
+        if (franciscoSpeechMesh) { scene.remove(franciscoSpeechMesh); franciscoSpeechMesh = null; }
 
         // Create player
         playerModel = window.GAME.Characters.createPlayer(characterName);
@@ -146,9 +296,17 @@ window.GAME = window.GAME || {};
         franciscoModel.position.set(0, 0, -15); // near counter area
         scene.add(franciscoModel);
 
+        // Jaime spawns later (after 5 seconds)
+        jaimeModel = null;
+
         // Reset mechanics
         window.GAME.Mechanics.reset();
         window.GAME.Mechanics.init(restaurantData, scene);
+
+        // Reset speech bubble state
+        franciscoSpeechTimer = 4;
+        franciscoSpeechVisible = false;
+        franciscoSpeechDuration = 0;
 
         // Position camera behind the player, facing Francisco
         window.GAME.Camera.setOrbitAngle(Math.PI);
@@ -193,18 +351,49 @@ window.GAME = window.GAME || {};
 
         // Get input
         var input;
+        var moveMag = 0;
+
         if (window.GAME.UI.isTouchDevice()) {
-            var joystick = window.GAME.UI.getJoystickInput();
-            input = { x: joystick.x, z: joystick.y };
+            // Tap-to-move: get target, compute direction to it
+            var tapTarget = window.GAME.UI.getTapTarget();
+            if (tapTarget.active) {
+                var tdx = tapTarget.x - playerModel.position.x;
+                var tdz = tapTarget.z - playerModel.position.z;
+                var tDist = Math.sqrt(tdx * tdx + tdz * tdz);
+
+                if (tDist > 0.5) {
+                    // Normalize direction — feed directly as world-space input
+                    // (bypass camera-relative transform by setting cameraYaw to 0)
+                    input = { x: tdx / tDist, z: tdz / tDist };
+                    moveMag = 1;
+
+                    // Show target marker
+                    if (tapTargetMarker) {
+                        tapTargetMarker.visible = true;
+                        tapTargetMarker.position.set(tapTarget.x, 0.05, tapTarget.z);
+                        var pulse = 0.8 + Math.sin(state.elapsedTime * 6) * 0.2;
+                        tapTargetMarker.scale.set(pulse, pulse, pulse);
+                    }
+                } else {
+                    // Reached target
+                    window.GAME.UI.clearTapTarget();
+                    input = { x: 0, z: 0 };
+                    if (tapTargetMarker) tapTargetMarker.visible = false;
+                }
+            } else {
+                input = { x: 0, z: 0 };
+                if (tapTargetMarker) tapTargetMarker.visible = false;
+            }
         } else {
             input = getKeyboardInput();
         }
 
         // Get camera yaw for movement direction
-        var cameraYaw = window.GAME.Camera.getYaw();
+        // For tap-to-move, input is already in world space so use yaw=0
+        var cameraYaw = window.GAME.UI.isTouchDevice() ? 0 : window.GAME.Camera.getYaw();
 
         // Update player movement
-        var moveMag = window.GAME.Mechanics.updatePlayerMovement(
+        window.GAME.Mechanics.updatePlayerMovement(
             playerModel, input.x, input.z, dt, cameraYaw
         );
 
@@ -233,6 +422,28 @@ window.GAME = window.GAME || {};
         window.GAME.Characters.updateAngerEffects(
             franciscoModel, state.difficulty, state.elapsedTime, scene
         );
+
+        // Francisco speech bubbles
+        updateFranciscoSpeech(dt);
+
+        // ---- JAIME SPAWN & UPDATE ----
+        if (!jaimeModel && state.elapsedTime >= 5 && !state.jaimeSpawned) {
+            // Spawn Jaime near front door
+            jaimeModel = window.GAME.Characters.createJaime();
+            jaimeModel.position.set(0, 0, restaurantData.DEPTH / 2 - 2);
+            jaimeModel.rotation.y = Math.PI; // face into restaurant
+            scene.add(jaimeModel);
+            state.jaimeSpawned = true;
+        }
+
+        if (jaimeModel) {
+            var jaimeDist = window.GAME.Mechanics.updateJaime(
+                jaimeModel, playerModel.position, dt
+            );
+            var jSpeed = window.GAME.Mechanics.getJaimeSpeed();
+            window.GAME.Characters.animateWalk(jaimeModel, dt, jSpeed);
+            window.GAME.Characters.animateIdle(jaimeModel, state.elapsedTime);
+        }
 
         // Tension lighting — shift a pendant light reddish when Francisco is close
         if (restaurantData.pendantLights.length > 0 && franciscoDist !== undefined) {
@@ -277,8 +488,10 @@ window.GAME = window.GAME || {};
             }
         }
 
-        // Check catch
-        if (window.GAME.Mechanics.checkCatch(playerModel.position, franciscoModel.position)) {
+        // Check catch (Francisco or Jaime)
+        var jaimePos = jaimeModel ? jaimeModel.position : null;
+        var caughtBy = window.GAME.Mechanics.checkCatch(playerModel.position, franciscoModel.position, jaimePos);
+        if (caughtBy) {
             triggerGameOver();
         }
 
@@ -301,6 +514,11 @@ window.GAME = window.GAME || {};
 
         // Camera shake
         window.GAME.Camera.shake(1);
+
+        // Hide tap target and speech bubble
+        if (tapTargetMarker) tapTargetMarker.visible = false;
+        if (franciscoSpeechMesh) { scene.remove(franciscoSpeechMesh); franciscoSpeechMesh = null; }
+        franciscoSpeechVisible = false;
 
         var isNewHigh = state.score > window.GAME.UI.getHighScore();
         window.GAME.UI.showGameOver(state.score, state.elapsedTime, isNewHigh);

@@ -99,6 +99,47 @@ window.GAME.Characters = (function() {
             );
             hairBack.position.set(0, head.position.y + headSize * 0.1, -headSize * 0.45);
             group.add(hairBack);
+        } else if (config.hairStyle === 'long_blond') {
+            // Jaime's long blond hair — flows past shoulders
+            var hairTop = new THREE.Mesh(
+                new THREE.BoxGeometry(headSize * 1.1, headSize * 0.3, headSize * 1.0),
+                hairMat
+            );
+            hairTop.position.y = head.position.y + headSize * 0.35;
+            hairTop.castShadow = true;
+            group.add(hairTop);
+
+            // Left side flowing down
+            var hairLeftLong = new THREE.Mesh(
+                new THREE.BoxGeometry(headSize * 0.2, headSize * 1.4, headSize * 0.6),
+                hairMat
+            );
+            hairLeftLong.position.set(-headSize * 0.5, head.position.y - headSize * 0.3, 0);
+            group.add(hairLeftLong);
+
+            // Right side flowing down
+            var hairRightLong = new THREE.Mesh(
+                new THREE.BoxGeometry(headSize * 0.2, headSize * 1.4, headSize * 0.6),
+                hairMat
+            );
+            hairRightLong.position.set(headSize * 0.5, head.position.y - headSize * 0.3, 0);
+            group.add(hairRightLong);
+
+            // Hair back flowing down past shoulders
+            var hairBackLong = new THREE.Mesh(
+                new THREE.BoxGeometry(headSize * 1.0, headSize * 1.6, headSize * 0.2),
+                hairMat
+            );
+            hairBackLong.position.set(0, head.position.y - headSize * 0.4, -headSize * 0.45);
+            group.add(hairBackLong);
+
+            // Bangs across forehead
+            var bangs = new THREE.Mesh(
+                new THREE.BoxGeometry(headSize * 0.9, headSize * 0.15, headSize * 0.15),
+                hairMat
+            );
+            bangs.position.set(0, head.position.y + headSize * 0.3, headSize * 0.4);
+            group.add(bangs);
         }
 
         // EYES
@@ -412,6 +453,26 @@ window.GAME.Characters = (function() {
     }
 
     /**
+     * Create Jaime (the blond female manager antagonist)
+     */
+    function createJaime() {
+        var config = {
+            name: 'JAIME',
+            skinColor: 0xFDBCB4,
+            hairColor: 0xFFD700,
+            hairStyle: 'long_blond',
+            scale: 0.95,
+            bodyWidth: 0.7,
+            bodyHeight: 0.95,
+            smile: false,
+            isFrancisco: false,
+            isJaime: true
+        };
+        var model = buildCharacter(config);
+        return model;
+    }
+
+    /**
      * Animate walking motion
      */
     function animateWalk(model, dt, speed) {
@@ -575,6 +636,7 @@ window.GAME.Characters = (function() {
     return {
         createPlayer: createPlayer,
         createFrancisco: createFrancisco,
+        createJaime: createJaime,
         animateWalk: animateWalk,
         animateIdle: animateIdle,
         updateEyeTracking: updateEyeTracking,

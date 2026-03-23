@@ -30,7 +30,13 @@ window.GAME.Mechanics = (function() {
         franciscoSpeedIncrease: 0.7,
         franciscoMaxSpeed: 16,
         gameOver: false,
-        friscoMeltCount: 0
+        friscoMeltCount: 0,
+        // Jaime state
+        jaimeSpawned: false,
+        jaimeStuckTime: 0,
+        jaimeBaseSpeed: 7.0,
+        jaimeSpeedIncrease: 0.6,
+        jaimeMaxSpeed: 15
     };
 
     var restaurantData = null;
@@ -79,6 +85,8 @@ window.GAME.Mechanics = (function() {
         state.franciscoLastPos = { x: 0, z: 0 };
         state.gameOver = false;
         state.friscoMeltCount = 0;
+        state.jaimeSpawned = false;
+        state.jaimeStuckTime = 0;
     }
 
     /**
@@ -282,15 +290,88 @@ window.GAME.Mechanics = (function() {
     }
 
     /**
-     * Check if Francisco caught the player (game over)
+     * Update Jaime AI movement (same pattern as Francisco, slightly different stats)
      */
-    function checkCatch(playerPos, franciscoPos) {
-        // 55% shrink for fairness
+    function updateJaime(jaime, playerPos, dt) {
+        if (state.gameOver || !jaime) return;
+
+        var speed = Math.min(
+            state.jaimeMaxSpeed,
+            state.jaimeBaseSpeed + state.difficulty * state.jaimeSpeedIncrease
+        );
+
+        var dx = playerPos.x - jaime.position.x;
+        var dz = playerPos.z - jaime.position.z;
+        var dist = Math.sqrt(dx * dx + dz * dz);
+
+        if (dist > 0.1) {
+            dx /= dist;
+            dz /= dist;
+
+            var newPos = moveWithCollision(
+                jaime.position.x, jaime.position.z,
+                dx * speed * dt, dz * speed * dt,
+                0.45
+            );
+
+            var movedDist = Math.sqrt(
+                Math.pow(newPos.x - jaime.position.x, 2) +
+                Math.pow(newPos.z - jaime.position.z, 2)
+            );
+
+            if (movedDist < 0.05 * dt) {
+                state.jaimeStuckTime += dt;
+            } else {
+                state.jaimeStuckTime = 0;
+            }
+
+            // Unstick with perpendicular nudge
+            if (state.jaimeStuckTime > 0.25) {
+                var perpX = -dz;
+                var perpZ = dx;
+                var tryPos1 = moveWithCollision(jaime.position.x, jaime.position.z, perpX * speed * dt * 2, perpZ * speed * dt * 2, 0.45);
+                var tryPos2 = moveWithCollision(jaime.position.x, jaime.position.z, -perpX * speed * dt * 2, -perpZ * speed * dt * 2, 0.45);
+                var dist1 = Math.sqrt(Math.pow(tryPos1.x - jaime.position.x, 2) + Math.pow(tryPos1.z - jaime.position.z, 2));
+                var dist2 = Math.sqrt(Math.pow(tryPos2.x - jaime.position.x, 2) + Math.pow(tryPos2.z - jaime.position.z, 2));
+                newPos = dist1 > dist2 ? tryPos1 : tryPos2;
+                if (dist1 > 0.01 || dist2 > 0.01) state.jaimeStuckTime = 0;
+            }
+
+            jaime.position.x = newPos.x;
+            jaime.position.z = newPos.z;
+
+            // Rotate to face player
+            var targetAngle = Math.atan2(dx, dz);
+            var angleDiff = targetAngle - jaime.rotation.y;
+            while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+            while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+            jaime.rotation.y += angleDiff * Math.min(1, dt * 10);
+        }
+
+        return dist;
+    }
+
+    /**
+     * Check if any antagonist caught the player (game over)
+     * Returns null if no catch, or 'francisco'/'jaime' indicating who caught
+     */
+    function checkCatch(playerPos, franciscoPos, jaimePos) {
         var catchRadius = 0.5 * 0.55;
+        var threshold = catchRadius * 2 + 0.3;
+
+        // Check Francisco
         var dx = playerPos.x - franciscoPos.x;
         var dz = playerPos.z - franciscoPos.z;
-        var dist = Math.sqrt(dx * dx + dz * dz);
-        return dist < catchRadius * 2 + 0.3; // combined radii with shrink
+        if (Math.sqrt(dx * dx + dz * dz) < threshold) return 'francisco';
+
+        // Check Jaime
+        if (jaimePos) {
+            dx = playerPos.x - jaimePos.x;
+            dz = playerPos.z - jaimePos.z;
+            if (Math.sqrt(dx * dx + dz * dz) < threshold) return 'jaime';
+        }
+
+        return null;
     }
 
     /**
@@ -780,10 +861,14 @@ window.GAME.Mechanics = (function() {
         update: update,
         updatePlayerMovement: updatePlayerMovement,
         updateFrancisco: updateFrancisco,
+        updateJaime: updateJaime,
         checkCatch: checkCatch,
         getState: getState,
         setGameOver: setGameOver,
         getFranciscoSpeed: getFranciscoSpeed,
+        getJaimeSpeed: function() {
+            return Math.min(state.jaimeMaxSpeed, state.jaimeBaseSpeed + state.difficulty * state.jaimeSpeedIncrease);
+        },
         moveWithCollision: moveWithCollision
     };
 })();

@@ -606,6 +606,68 @@ window.GAME.Restaurant = (function() {
         var standBase = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 0.1, 12), standMat);
         standBase.position.set(-4, 0.05, DEPTH / 2 - 1);
         group.add(standBase);
+
+        // ---- JAIME'S YELLOW DODGE NEON (parked outside front door) ----
+        var carYellowMat = new THREE.MeshStandardMaterial({ color: 0xFFDD00, roughness: 0.4, metalness: 0.3 });
+        var carBlackMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.8 });
+        var carGlassMat = new THREE.MeshStandardMaterial({
+            color: 0x88BBDD, transparent: true, opacity: 0.4, roughness: 0.1, metalness: 0.6
+        });
+
+        var carZ = DEPTH / 2 + 5; // outside the front wall
+
+        // Car body (main)
+        var carBody = new THREE.Mesh(new THREE.BoxGeometry(4, 1.4, 2.2), carYellowMat);
+        carBody.position.set(4, 0.9, carZ);
+        carBody.castShadow = true;
+        group.add(carBody);
+
+        // Car cabin (upper)
+        var carCabin = new THREE.Mesh(new THREE.BoxGeometry(2.2, 1.0, 2.0), carYellowMat);
+        carCabin.position.set(4.2, 1.9, carZ);
+        carCabin.castShadow = true;
+        group.add(carCabin);
+
+        // Windshield (front glass)
+        var windshield = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.8, 1.8), carGlassMat);
+        windshield.position.set(3.05, 1.85, carZ);
+        windshield.rotation.z = 0.2;
+        group.add(windshield);
+
+        // Rear window
+        var rearWindow = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.7, 1.7), carGlassMat);
+        rearWindow.position.set(5.35, 1.8, carZ);
+        rearWindow.rotation.z = -0.2;
+        group.add(rearWindow);
+
+        // Wheels (4 cylinders)
+        var wheelPositions = [
+            [-1.3, -0.8], [1.3, -0.8], [-1.3, 0.8], [1.3, 0.8]
+        ];
+        wheelPositions.forEach(function(wp) {
+            var wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 0.25, 12), carBlackMat);
+            wheel.rotation.x = Math.PI / 2;
+            wheel.position.set(4 + wp[0], 0.4, carZ + wp[1]);
+            group.add(wheel);
+        });
+
+        // Headlights (small white boxes)
+        var headlightMat = new THREE.MeshBasicMaterial({ color: 0xFFFFCC });
+        var hlL = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.25, 0.4), headlightMat);
+        hlL.position.set(2, 0.9, carZ - 0.7);
+        group.add(hlL);
+        var hlR = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.25, 0.4), headlightMat);
+        hlR.position.set(2, 0.9, carZ + 0.7);
+        group.add(hlR);
+
+        // Taillights (small red boxes)
+        var taillightMat = new THREE.MeshBasicMaterial({ color: 0xFF2200 });
+        var tlL = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.2, 0.35), taillightMat);
+        tlL.position.set(6, 0.9, carZ - 0.7);
+        group.add(tlL);
+        var tlR = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.2, 0.35), taillightMat);
+        tlR.position.set(6, 0.9, carZ + 0.7);
+        group.add(tlR);
     }
 
     function buildPickupZone(group) {
