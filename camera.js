@@ -114,7 +114,7 @@ window.GAME.Camera = (function() {
         // On mobile, auto-follow behind player's movement direction
         if (isMobile) {
             // Smoothly rotate to behind the player
-            var targetAutoAngle = player.rotation.y + Math.PI;
+            var targetAutoAngle = player.rotation.y;
             var angleDiff = targetAutoAngle - autoFollowAngle;
             while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
             while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
