@@ -138,6 +138,7 @@ window.GAME = window.GAME || {};
         // Create player
         playerModel = window.GAME.Characters.createPlayer(characterName);
         playerModel.position.set(0, 0, 15); // bottom-center of restaurant
+        playerModel.rotation.y = Math.PI;   // face toward Francisco (negative Z)
         scene.add(playerModel);
 
         // Create Francisco
@@ -148,6 +149,9 @@ window.GAME = window.GAME || {};
         // Reset mechanics
         window.GAME.Mechanics.reset();
         window.GAME.Mechanics.init(restaurantData, scene);
+
+        // Position camera behind the player, facing Francisco
+        window.GAME.Camera.setOrbitAngle(Math.PI);
 
         // Show HUD
         window.GAME.UI.showHUD();

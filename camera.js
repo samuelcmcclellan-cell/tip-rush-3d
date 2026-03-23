@@ -11,11 +11,11 @@ window.GAME.Camera = (function() {
 
     // Camera orbit settings
     var orbitAngle = 0;           // Horizontal orbit angle (radians)
-    var orbitPitch = 0.5;         // Vertical pitch (radians, 0 = level, positive = look down)
-    var orbitDistance = 12;        // Distance from player
-    var minDistance = 6;
-    var maxDistance = 20;
-    var smoothFactor = 0.08;
+    var orbitPitch = 0.35;        // Vertical pitch (radians, ~20° — shallower for more forward visibility)
+    var orbitDistance = 9;         // Distance from player (tighter for indoor space)
+    var minDistance = 5;
+    var maxDistance = 16;
+    var smoothFactor = 0.12;
 
     // Camera offset when at default position
     var heightOffset = 8;
@@ -131,7 +131,7 @@ window.GAME.Camera = (function() {
         var desiredY = player.position.y + verticalDist;
 
         // Clamp Y above floor
-        desiredY = Math.max(2, Math.min(7.5, desiredY));
+        desiredY = Math.max(2, Math.min(6.5, desiredY));
 
         // Camera shake when Francisco is close
         if (franciscoDistance !== undefined && franciscoDistance < 5) {
@@ -156,7 +156,7 @@ window.GAME.Camera = (function() {
         // Look at player (slightly above head)
         var lookTarget = new THREE.Vector3(
             player.position.x,
-            player.position.y + 1.5,
+            player.position.y + 2.0,
             player.position.z
         );
         camera.lookAt(lookTarget);
@@ -184,6 +184,14 @@ window.GAME.Camera = (function() {
     }
 
     /**
+     * Reset orbit angle (e.g. when starting a new game)
+     */
+    function setOrbitAngle(angle) {
+        orbitAngle = angle;
+        autoFollowAngle = angle;
+    }
+
+    /**
      * Clean up event listeners
      */
     function dispose() {
@@ -199,6 +207,7 @@ window.GAME.Camera = (function() {
         getYaw: getYaw,
         getCamera: getCamera,
         shake: shake,
+        setOrbitAngle: setOrbitAngle,
         setWallMeshes: setWallMeshes,
         dispose: dispose
     };
