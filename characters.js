@@ -458,23 +458,101 @@ window.GAME.Characters = (function() {
     function createJaime() {
         var config = {
             name: 'JAIME',
-            skinColor: 0xFDBCB4,
-            hairColor: 0xFFD700,
+            skinColor: 0xE8D0C0,       // pale sickly skin
+            hairColor: 0xBBA830,        // dirty faded blond
             hairStyle: 'long_blond',
-            scale: 0.95,
-            bodyWidth: 0.7,
-            bodyHeight: 0.95,
+            scale: 0.9,                 // gaunt, smaller
+            bodyWidth: 0.55,            // skinny
+            bodyHeight: 0.9,
             smile: false,
             isFrancisco: false,
             isJaime: true
         };
         var model = buildCharacter(config);
+
+        // --- Meth addict details ---
+        var headY = model.userData.headY;
+        var headSize = 0.55 * config.scale;
+
+        // Dark circles under eyes (sunken look)
+        var darkCircleMat = new THREE.MeshBasicMaterial({ color: 0x4a3040, transparent: true, opacity: 0.6 });
+        var eyeSpacing = 0.12 * config.scale;
+        var leftCircle = new THREE.Mesh(new THREE.SphereGeometry(0.06 * config.scale, 6, 6), darkCircleMat);
+        leftCircle.position.set(-eyeSpacing, headY - 0.05 * config.scale, headSize * 0.38);
+        leftCircle.scale.set(1.3, 0.5, 0.5);
+        model.add(leftCircle);
+        var rightCircle = new THREE.Mesh(new THREE.SphereGeometry(0.06 * config.scale, 6, 6), darkCircleMat);
+        rightCircle.position.set(eyeSpacing, headY - 0.05 * config.scale, headSize * 0.38);
+        rightCircle.scale.set(1.3, 0.5, 0.5);
+        model.add(rightCircle);
+
+        // Visible teeth / grimace (yellowish)
+        var teethMat = new THREE.MeshBasicMaterial({ color: 0xCCBB66 });
+        var teeth = new THREE.Mesh(new THREE.BoxGeometry(0.1 * config.scale, 0.03 * config.scale, 0.02 * config.scale), teethMat);
+        teeth.position.set(0, headY - 0.12 * config.scale, headSize * 0.43);
+        model.add(teeth);
+
+        // Messy hair strands sticking out randomly
+        var messyHairMat = new THREE.MeshStandardMaterial({ color: 0xBBA830, roughness: 0.9 });
+        for (var i = 0; i < 5; i++) {
+            var strand = new THREE.Mesh(
+                new THREE.BoxGeometry(0.04, 0.25, 0.04),
+                messyHairMat
+            );
+            var angle = (i / 5) * Math.PI * 2;
+            strand.position.set(
+                Math.cos(angle) * headSize * 0.5,
+                headY + headSize * 0.3 + Math.random() * 0.15,
+                Math.sin(angle) * headSize * 0.4
+            );
+            strand.rotation.set(
+                (Math.random() - 0.5) * 0.8,
+                Math.random() * Math.PI,
+                (Math.random() - 0.5) * 0.8
+            );
+            model.add(strand);
+        }
+
+        // Sunken cheeks (dark indentations on sides of face)
+        var cheekMat = new THREE.MeshBasicMaterial({ color: 0xC0A898, transparent: true, opacity: 0.5 });
+        var leftCheek = new THREE.Mesh(new THREE.SphereGeometry(0.06 * config.scale, 6, 6), cheekMat);
+        leftCheek.position.set(-headSize * 0.35, headY - 0.04, headSize * 0.2);
+        leftCheek.scale.set(0.5, 0.8, 0.5);
+        model.add(leftCheek);
+        var rightCheekM = new THREE.Mesh(new THREE.SphereGeometry(0.06 * config.scale, 6, 6), cheekMat);
+        rightCheekM.position.set(headSize * 0.35, headY - 0.04, headSize * 0.2);
+        rightCheekM.scale.set(0.5, 0.8, 0.5);
+        model.add(rightCheekM);
+
         return model;
     }
 
     /**
      * Animate walking motion
      */
+    /**
+     * Create a static NPC diner (seated, no animation)
+     */
+    function createNPC(skinColor, hairColor, hairStyle) {
+        var config = {
+            name: '',
+            skinColor: skinColor,
+            hairColor: hairColor,
+            hairStyle: hairStyle,
+            scale: 1,
+            bodyWidth: 0.8,
+            bodyHeight: 1,
+            smile: true,
+            isFrancisco: false
+        };
+        var model = buildCharacter(config);
+        // Hide legs and shoes (seated behind booth table)
+        var parts = model.userData.parts;
+        if (parts.leftLeg) parts.leftLeg.visible = false;
+        if (parts.rightLeg) parts.rightLeg.visible = false;
+        return model;
+    }
+
     function animateWalk(model, dt, speed) {
         var data = model.userData;
         var parts = data.parts;
@@ -535,6 +613,12 @@ window.GAME.Characters = (function() {
             var bellyBreathe = 1 + Math.sin(time * 1.5) * 0.03;
             parts.belly.scale.z = bellyBreathe;
             parts.belly.scale.x = bellyBreathe;
+        }
+
+        // Jaime twitchy head jitter
+        if (data.config && data.config.isJaime && parts.head) {
+            parts.head.rotation.x = (Math.random() - 0.5) * 0.04;
+            parts.head.rotation.z = (Math.random() - 0.5) * 0.03;
         }
     }
 
@@ -637,6 +721,7 @@ window.GAME.Characters = (function() {
         createPlayer: createPlayer,
         createFrancisco: createFrancisco,
         createJaime: createJaime,
+        createNPC: createNPC,
         animateWalk: animateWalk,
         animateIdle: animateIdle,
         updateEyeTracking: updateEyeTracking,

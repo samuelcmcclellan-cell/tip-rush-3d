@@ -26,16 +26,16 @@ window.GAME.Mechanics = (function() {
         franciscoStuckTime: 0,
         franciscoLastPos: { x: 0, z: 0 },
         playerSpeed: 14,
-        franciscoBaseSpeed: 6.5,
-        franciscoSpeedIncrease: 0.7,
+        franciscoBaseSpeed: 5.5,
+        franciscoSpeedIncrease: 0.5,
         franciscoMaxSpeed: 16,
         gameOver: false,
         friscoMeltCount: 0,
         // Jaime state
         jaimeSpawned: false,
         jaimeStuckTime: 0,
-        jaimeBaseSpeed: 7.0,
-        jaimeSpeedIncrease: 0.6,
+        jaimeBaseSpeed: 5.0,
+        jaimeSpeedIncrease: 0.4,
         jaimeMaxSpeed: 15
     };
 
@@ -357,7 +357,7 @@ window.GAME.Mechanics = (function() {
      */
     function checkCatch(playerPos, franciscoPos, jaimePos) {
         var catchRadius = 0.5 * 0.55;
-        var threshold = catchRadius * 2 + 0.3;
+        var threshold = catchRadius * 2 + 0.15;
 
         // Check Francisco
         var dx = playerPos.x - franciscoPos.x;
@@ -728,7 +728,7 @@ window.GAME.Mechanics = (function() {
         if (state.gameOver) return;
 
         state.elapsedTime += dt;
-        state.difficulty = Math.floor(state.elapsedTime / 8);
+        state.difficulty = Math.floor(state.elapsedTime / 12);
 
         // Spawn initial orders
         if (!state.initialOrdersSpawned) {

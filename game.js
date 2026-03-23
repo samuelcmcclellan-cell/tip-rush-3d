@@ -14,6 +14,7 @@ window.GAME = window.GAME || {};
     var playerModel = null;
     var franciscoModel = null;
     var jaimeModel = null;
+    var npcModels = [];
     var restaurantData = null;
 
     // Input state
@@ -40,7 +41,8 @@ window.GAME = window.GAME || {};
         "Where you going?",
         "Slow down...",
         "Hey wait up...",
-        "I need to tell you something..."
+        "I need to tell you something...",
+        "Hey lemme help you with your apron jaja"
     ];
 
     /**
@@ -287,17 +289,36 @@ window.GAME = window.GAME || {};
 
         // Create player
         playerModel = window.GAME.Characters.createPlayer(characterName);
-        playerModel.position.set(0, 0, 15); // bottom-center of restaurant
+        playerModel.position.set(0, 0, 8); // centered in restaurant, room for camera behind
         playerModel.rotation.y = Math.PI;   // face toward Francisco (negative Z)
         scene.add(playerModel);
 
         // Create Francisco
         franciscoModel = window.GAME.Characters.createFrancisco();
-        franciscoModel.position.set(0, 0, -15); // near counter area
+        franciscoModel.position.set(-2, 0, -10); // visible ahead of player
         scene.add(franciscoModel);
 
-        // Jaime spawns later (after 5 seconds)
+        // Jaime spawns later (after 8 seconds)
         jaimeModel = null;
+
+        // Remove old NPCs
+        npcModels.forEach(function(npc) { scene.remove(npc); });
+        npcModels = [];
+
+        // Spawn 4 NPC diners at booths
+        var npcConfigs = [
+            { skin: 0xFDBCB4, hair: 0x8B6914, style: 'short_brown', x: -10, z: -8, ry: Math.PI / 2 },
+            { skin: 0xC68642, hair: 0x1a1a1a, style: 'short_black', x: 10, z: 2, ry: -Math.PI / 2 },
+            { skin: 0xE8C4A0, hair: 0x6B3A2A, style: 'short_brown', x: -10, z: 12, ry: Math.PI / 2 },
+            { skin: 0x8B6E4E, hair: 0x1a1a1a, style: 'short_black', x: 10, z: -8, ry: -Math.PI / 2 }
+        ];
+        npcConfigs.forEach(function(cfg) {
+            var npc = window.GAME.Characters.createNPC(cfg.skin, cfg.hair, cfg.style);
+            npc.position.set(cfg.x, 0.6, cfg.z); // raised slightly to look seated
+            npc.rotation.y = cfg.ry;
+            scene.add(npc);
+            npcModels.push(npc);
+        });
 
         // Reset mechanics
         window.GAME.Mechanics.reset();
@@ -427,7 +448,7 @@ window.GAME = window.GAME || {};
         updateFranciscoSpeech(dt);
 
         // ---- JAIME SPAWN & UPDATE ----
-        if (!jaimeModel && state.elapsedTime >= 5 && !state.jaimeSpawned) {
+        if (!jaimeModel && state.elapsedTime >= 8 && !state.jaimeSpawned) {
             // Spawn Jaime near front door
             jaimeModel = window.GAME.Characters.createJaime();
             jaimeModel.position.set(0, 0, restaurantData.DEPTH / 2 - 2);

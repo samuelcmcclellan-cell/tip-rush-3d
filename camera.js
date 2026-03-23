@@ -149,7 +149,7 @@ window.GAME.Camera = (function() {
 
         // Clamp camera within restaurant bounds (with padding)
         var halfW = 14;
-        var halfD = 21;
+        var halfD = 22;
         camera.position.x = Math.max(-halfW, Math.min(halfW, camera.position.x));
         camera.position.z = Math.max(-halfD, Math.min(halfD, camera.position.z));
 
