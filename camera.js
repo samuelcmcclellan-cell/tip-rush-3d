@@ -11,14 +11,14 @@ window.GAME.Camera = (function() {
 
     // Camera orbit settings
     var orbitAngle = 0;           // Horizontal orbit angle (radians)
-    var orbitPitch = 0.35;        // Vertical pitch (radians, ~20° — shallower for more forward visibility)
-    var orbitDistance = 9;         // Distance from player (tighter for indoor space)
-    var minDistance = 5;
-    var maxDistance = 16;
+    var orbitPitch = 0.45;        // Vertical pitch (radians, ~26° — steeper for better overhead visibility)
+    var orbitDistance = 17;        // Distance from player (wide view to see restaurant)
+    var minDistance = 10;
+    var maxDistance = 22;
     var smoothFactor = 0.12;
 
     // Camera offset when at default position
-    var heightOffset = 8;
+    var heightOffset = 12;
 
     // Mouse drag state
     var isDragging = false;
