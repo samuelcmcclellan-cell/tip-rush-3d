@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Steak 'n' Shake: Tip Rush 3D</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Russo+One&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Three.js Canvas will be inserted here -->
+
+    <!-- Character Select Menu -->
+    <div id="menu-overlay">
+        <div id="menu-content">
+            <h1 id="menu-title">STEAK 'N' SHAKE</h1>
+            <h2 id="menu-subtitle">TIP RUSH</h2>
+            <p id="menu-instruction">CHOOSE YOUR CHARACTER</p>
+            <div id="character-buttons">
+                <button class="char-btn" data-char="chris">
+                    <div class="char-preview" style="background-color: #FDBCB4;"></div>
+                    <span class="char-name">CHRIS</span>
+                </button>
+                <button class="char-btn" data-char="jabu">
+                    <div class="char-preview" style="background-color: #C68642;"></div>
+                    <span class="char-name">JABU</span>
+                </button>
+            </div>
+            <p id="menu-highscore"></p>
+        </div>
+    </div>
+
+    <!-- In-Game HUD -->
+    <div id="hud" style="display:none;">
+        <div id="hud-bar">
+            <div id="hud-left">
+                <div id="hud-score">$0</div>
+                <div id="hud-status">GO TO COUNTER</div>
+            </div>
+            <div id="hud-center">
+                <div id="hud-timer">0:00</div>
+                <div id="hud-orders">0 ORDERS</div>
+            </div>
+            <div id="hud-right">
+                <div id="hud-best">BEST: $0</div>
+                <div id="hud-frisco"></div>
+            </div>
+        </div>
+        <div id="milkshake-bar" style="display:none;">
+            <div id="milkshake-fill"></div>
+            <div id="milkshake-text">🥤 MILKSHAKE SPEED!</div>
+        </div>
+        <div id="francisco-warning" style="display:none;">⚠ FRANCISCO IS SPEEDING UP ⚠</div>
+    </div>
+
+    <!-- Game Over Screen -->
+    <div id="gameover-overlay" style="display:none;">
+        <div id="gameover-content">
+            <h1 id="gameover-title">FRANCISCO GOT YOU!</h1>
+            <div id="gameover-score">$0</div>
+            <div id="gameover-newhigh" style="display:none;">NEW HIGH SCORE!</div>
+            <div id="gameover-time">Time: 0:00</div>
+            <button id="play-again-btn">PLAY AGAIN</button>
+        </div>
+    </div>
+
+    <!-- Virtual Joystick (mobile) -->
+    <div id="joystick-container" style="display:none;">
+        <div id="joystick-outer">
+            <div id="joystick-inner"></div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="audio.js"></script>
+    <script src="restaurant.js"></script>
+    <script src="characters.js"></script>
+    <script src="mechanics.js"></script>
+    <script src="camera.js"></script>
+    <script src="ui.js"></script>
+    <script src="game.js"></script>
+</body>
+</html>
